@@ -1,5 +1,9 @@
 <p align="center"><img src="https://github.com/arun-sub/punnet/blob/master/img/GenomicsBenchLogo-Colored.png" width="750"></p>
 
+# Ecosys Notes
+- Using Java 8 to avoid version conflict against this project's gradle: `export JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64`
+`
+
 # About
 
 A benchmark suite covering the major steps in short and long-read genome sequence analysis pipelines such as basecalling, sequence mapping, de-novo assembly, variant calling and polishing.
