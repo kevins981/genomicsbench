@@ -1,9 +1,9 @@
 CXX=g++
 CC=gcc
 ARCH=avx2
-#VTUNE_HOME=/opt/intel/oneapi/vtune/2021.1.1
-MKLROOT=/opt/intel/oneapi/mkl/2021.1.1
-MKL_IOMP5_DIR=/opt/intel/oneapi/compiler/2021.1.2/linux/compiler/lib/intel64_lin
+##VTUNE_HOME=/opt/intel/oneapi/vtune/2021.2.0
+MKLROOT=/opt/intel/oneapi/mkl/2022.1.0
+MKL_IOMP5_DIR=/opt/intel/oneapi/compiler/2022.1.0/linux/compiler/lib/intel64_lin
 CUDA_LIB=/usr/local/cuda
 
 .PHONY: clean
