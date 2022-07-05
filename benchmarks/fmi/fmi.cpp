@@ -59,7 +59,7 @@ int main(int argc, char **argv) {
 
     int32_t numReads = 0;
     int64_t total_size = 0;
-    gzFile fp = gzopen(argv[2], "r");
+    gzFile fp = gzopen(argv[2], "r");  // SRR7733443_10m_1.fastq
 	if (fp == 0)
 	{
 		fprintf(stderr, "[E::%s] fail to open file `%s'.\n", __func__, argv[2]);
@@ -68,6 +68,11 @@ int main(int argc, char **argv) {
     
     printf("before reading sequences\n");
     bseq1_t *seqs = bseq_read_one_fasta_file(QUERY_DB_SIZE, &numReads, fp, &total_size);
+    // total_size == 1,510,000,000, or 1.51G
+    // QUERY_DB_SIZE == 2,560,000,000, or 2.56G
+    // numReads == 10,000,000, or 10M. This is the number of substrings
+    // I am guess query DB is the set of queries. Each query == a substring pattern
+    // seqs is an array of queries. E.g. seqs[0].seq is the first substring pattern
 
     if(seqs == NULL)
     {
@@ -76,8 +81,9 @@ int main(int argc, char **argv) {
     }
     int32_t *query_cum_len_ar = (int32_t *)_mm_malloc(numReads * sizeof(int32_t), 64);
 
-    FMI_search *fmiSearch = new FMI_search(argv[1]);
-    fmiSearch->load_index();
+    FMI_search *fmiSearch = new FMI_search(argv[1]); // broad.* files
+    fmiSearch->load_index(); // for details, see FMI_search.cpp
+
 
 
     int max_readlength = seqs[0].l_seq;
@@ -93,7 +99,7 @@ int main(int argc, char **argv) {
     assert(max_readlength < 10000);
     assert(numReads > 0);
     assert(numReads * max_readlength < QUERY_DB_SIZE);
-    printf("numReads = %d, max_readlength = %d, min_readlength = %d\n", numReads, max_readlength, min_readlength);
+    printf("numReads = %d, max_readlength = %d, min_readlength = %d\n", numReads, max_readlength, min_readlength); // min_readlength == max_readlength == 151
     uint8_t *enc_qdb=(uint8_t *)malloc((int64_t)numReads * max_readlength * sizeof(uint8_t));
 
     int64_t cind,st;
