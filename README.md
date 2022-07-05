@@ -13,7 +13,7 @@ A benchmark suite covering the major steps in short and long-read genome sequenc
 * Latest source code
 
 ```bash
-git clone --recursive https://github.com/arun-sub/genomicsbench.git
+git clone --recursive https://github.com/kevins981/genomicsbench
 ```
 
 * Input datasets
