@@ -9,6 +9,7 @@
 [submodule "tools/bwa-mem2"]
 	path = tools/bwa-mem2
 	url = https://github.com/kevins981/bwa-mem2.git
+    branch = genomicbench_head
 [submodule "tools/minimap2"]
 	path = tools/minimap2
 	url = https://github.com/arun-sub/minimap2.git
