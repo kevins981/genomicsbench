@@ -95,11 +95,20 @@ int main(int argc, char **argv) {
     }
     int32_t *query_cum_len_ar = (int32_t *)_mm_malloc(numReads * sizeof(int32_t), 64);
 
+    uint64_t tim = __rdtsc();
+    sleep(1);
+    uint64_t proc_freq = __rdtsc() - tim;
+
+    int64_t startTick_load_index, endTick_load_index;
+    startTick_load_index = __rdtsc();
+
     FMI_search *fmiSearch = new FMI_search(argv[1]); // broad.* files
     //fmiSearch->build_index(); // create index file
     fmiSearch->load_index(); // load created index file into memory. for more details, see FMI_search.cpp
 
+    endTick_load_index = __rdtsc();
 
+    printf("Consumed load_index: %0.4lf sec\n", (endTick_load_index - startTick_load_index) * 1.0 / proc_freq);
 
     int max_readlength = seqs[0].l_seq;
     int min_readlength = seqs[0].l_seq;
@@ -171,10 +180,6 @@ int main(int argc, char **argv) {
     int64_t *numTotalSmem = (int64_t *)_mm_malloc(num_batches * sizeof(int64_t), 64);;
     SMEM **batchStart = (SMEM **)_mm_malloc(num_batches * sizeof(SMEM *), 64);;
     
-    uint64_t tim = __rdtsc();
-    sleep(1);
-    uint64_t proc_freq = __rdtsc() - tim;
-
 #pragma omp parallel num_threads(numthreads)
     {
         int tid = omp_get_thread_num();
@@ -194,6 +199,15 @@ int main(int argc, char **argv) {
     memset(batchStart, 0, num_batches * sizeof(int64_t));
     int64_t workTicks[CLMUL * numthreads];
     memset(workTicks, 0, CLMUL * numthreads * sizeof(int64_t));
+    // measure time elapsed for the main compute kernels:
+    int64_t computeKernelTicks[numthreads][4]; 
+    // [0] getSMEMsAllPosOneThread
+    // [1] getSMEMsOnePosOneThread
+    // [2] bwtSeedStrategyAllPosOneThread
+    // [3] sortSMEMs
+    memset(computeKernelTicks, 0, 4 * numthreads * sizeof(int64_t));
+    int64_t tmp_start, tmp_end;
+
     int64_t perThreadQuota = numReads / numthreads;
 
     int split_len = (int)(minSeedLen * splitFactor + .499);
@@ -208,7 +222,7 @@ int main(int argc, char **argv) {
         query_pos_array[CLMUL * tid] = (int16_t *)malloc(matchArrayAlloc * sizeof(int16_t));
 
         int64_t myTotalSmems = 0;
-        int64_t startTick = __rdtsc();
+        int64_t startTick = __rdtsc(); // local scope. This startTick is not the same as main startTick
 
 #pragma omp for schedule(dynamic, 1)
         for(i = 0; i < numReads; i += batch_size)
@@ -236,6 +250,9 @@ int main(int argc, char **argv) {
                 query_pos_array[CLMUL * tid] = (int16_t *)realloc(query_pos_array[CLMUL * tid], matchArrayAlloc * sizeof(int16_t));
             }
             int64_t num_smem1 = 0, num_smem2 = 0, num_smem3 = 0;
+
+            tmp_start = __rdtsc();
+
             fmiSearch->getSMEMsAllPosOneThread(enc_qdb + i * max_readlength,
                     min_intv_array[CLMUL * tid],
                     rid_array[CLMUL * tid],
@@ -247,7 +264,10 @@ int main(int argc, char **argv) {
                     minSeedLen,
                     &matchArray[CLMUL * tid][myTotalSmems],
                     &num_smem1);
-            
+
+            tmp_end = __rdtsc();
+            computeKernelTicks[tid][0] += (tmp_end - tmp_start);         
+
             int64_t pos = 0;
             for (j = 0; j < num_smem1; j++) {
                 SMEM *p = &matchArray[CLMUL * tid][myTotalSmems + j];
@@ -261,6 +281,7 @@ int main(int argc, char **argv) {
             }
             
             // Reseed
+            tmp_start = __rdtsc();
             fmiSearch->getSMEMsOnePosOneThread(enc_qdb + i * max_readlength,
                     query_pos_array[CLMUL * tid],
                     min_intv_array[CLMUL * tid],
@@ -273,11 +294,18 @@ int main(int argc, char **argv) {
                     minSeedLen,
                     &matchArray[CLMUL * tid][myTotalSmems + num_smem1],
                     &num_smem2);
+
+            tmp_end = __rdtsc();
+            computeKernelTicks[tid][1] += (tmp_end - tmp_start);         
+
             // LAST
             for(j = 0; j < batch_count; j++)
             {
                 min_intv_array[CLMUL * tid][j] = maxMemIntv;
             }
+
+            tmp_start = __rdtsc();
+
             num_smem3 = fmiSearch->bwtSeedStrategyAllPosOneThread(enc_qdb + i * max_readlength,
                     min_intv_array[CLMUL * tid],
                     batch_count,
@@ -285,6 +313,10 @@ int main(int argc, char **argv) {
                     query_cum_len_ar,
                     minSeedLen + 1,
                     &matchArray[CLMUL * tid][myTotalSmems + num_smem1 + num_smem2]);
+
+            tmp_end = __rdtsc();
+            computeKernelTicks[tid][2] += (tmp_end - tmp_start);         
+
             int64_t totalSmem = num_smem1 + num_smem2 + num_smem3; 
             numTotalSmem[batch_id] = totalSmem;
             batchStart[batch_id] = matchArray[CLMUL * tid] + myTotalSmems;
@@ -292,11 +324,17 @@ int main(int argc, char **argv) {
             {
                 matchArray[CLMUL * tid][myTotalSmems + j].rid += i;
             }
+
+            tmp_start = __rdtsc();
             fmiSearch->sortSMEMs(matchArray[CLMUL * tid] + myTotalSmems,
                     numTotalSmem + batch_id,
                     batch_count,
                     max_readlength,
                     1);
+
+            tmp_end = __rdtsc();
+            computeKernelTicks[tid][3] += (tmp_end - tmp_start);         
+
             myTotalSmems += totalSmem; 
             int64_t et1 = __rdtsc();
             workTicks[CLMUL * tid] += (et1 - st1);
@@ -304,6 +342,10 @@ int main(int argc, char **argv) {
 
         int64_t endTick = __rdtsc();
         printf("%d] %ld ticks, workTicks = %ld\n", tid, endTick - startTick, workTicks[CLMUL * tid]);
+        printf("Thead %d, Consumed getSMEMsAllPosOneThread        %0.4lf sec\n", tid, computeKernelTicks[tid][0] * 1.0 / proc_freq);
+        printf("Thead %d, Consumed getSMEMsOnePosOneThread        %0.4lf sec\n", tid, computeKernelTicks[tid][1] * 1.0 / proc_freq);
+        printf("Thead %d, Consumed bwtSeedStrategyAllPosOneThread %0.4lf sec\n", tid, computeKernelTicks[tid][2] * 1.0 / proc_freq);
+        printf("Thead %d, Consumed sortSMEMs                      %0.4lf sec\n", tid, computeKernelTicks[tid][3] * 1.0 / proc_freq);
     }
 
     endTick = __rdtsc();
@@ -320,7 +362,9 @@ int main(int argc, char **argv) {
     double avgTicks = (sumTicks * 1.0) / numthreads;
     printf("avgTicks = %lf, maxTicks = %ld, load imbalance = %lf\n", avgTicks, maxTicks, maxTicks/avgTicks);
 
-    printf("Consumed: %ld cycles, %0.4lf sec\n", endTick - startTick, (endTick - startTick) * 1.0 / proc_freq);
+    // This measurement does not include load_index()
+    printf("Consumed Total: %ld cycles, %0.4lf sec\n", endTick - startTick, (endTick - startTick) * 1.0 / proc_freq);
+
 
     int64_t totalSmem = 0;
     int32_t batch_id = 0;
