@@ -50,6 +50,20 @@ int main(int argc, char **argv) {
 #ifdef VTUNE_ANALYSIS
     __itt_pause();
 #endif
+    int occ_cp_block_size = CP_BLOCK_SIZE;
+    int occ_cp_mask = CP_MASK;
+    int occ_cp_shift = CP_SHIFT;
+
+
+    printf("[INFO: COMPRESSION] Occurance table compression ratio = %d\n", occ_cp_block_size);
+    printf("[INFO: COMPRESSION] Occurance table mask = %d\n", occ_cp_mask);
+    printf("[INFO: COMPRESSION] Occurance table shift = %d\n", occ_cp_shift);
+
+    // check that occurrance table compression parameters are valid.
+    // CP_BLOCK_SIZE is the compression ratio
+    assert(occ_cp_block_size == 1 << occ_cp_shift);
+    assert(occ_cp_block_size == occ_cp_mask + 1);
+    
 
     if(argc!=6)
     {
@@ -82,7 +96,8 @@ int main(int argc, char **argv) {
     int32_t *query_cum_len_ar = (int32_t *)_mm_malloc(numReads * sizeof(int32_t), 64);
 
     FMI_search *fmiSearch = new FMI_search(argv[1]); // broad.* files
-    fmiSearch->load_index(); // for details, see FMI_search.cpp
+    //fmiSearch->build_index(); // create index file
+    fmiSearch->load_index(); // load created index file into memory. for more details, see FMI_search.cpp
 
 
 
