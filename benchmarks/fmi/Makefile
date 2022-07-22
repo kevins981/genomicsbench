@@ -56,7 +56,8 @@ else ifneq ($(arch),)
 		ARCH_FLAGS=$(arch)
 endif
 
-CXXFLAGS=	-std=c++11 -fopenmp $(ARCH_FLAGS) #-mtune=native -march=native
+#CXXFLAGS=	-std=c++11 -fopenmp $(ARCH_FLAGS) -g -O0 #-mtune=native -march=native
+CXXFLAGS=	-std=c++11 -fopenmp $(ARCH_FLAGS) -g -O3 #-mtune=native -march=native
 #CPPFLAGS=	-DPRINT_OUTPUT -DENABLE_PREFETCH -DBWA_OTHER_ELE=0
 CPPFLAGS=	-DENABLE_PREFETCH -DBWA_OTHER_ELE=0
 BWAMEM2_PATH=../../tools/bwa-mem2
@@ -79,6 +80,7 @@ all:$(EXE)
 
 fmi:fmi.o $(BWAMEM2_PATH)/libbwa.a
 	$(CXX) -o $@ $^ $(LIBS)
+	#$(CXX) -o fmi_printoutput $^ $(LIBS)
 
 clean:
 	rm -fr *.o $(EXE)
