@@ -35,7 +35,7 @@ Authors: Vasimuddin Md <vasimuddin.md@intel.com>; Sanchit Misra <sanchit.misra@i
 #include "bwa.h"
 #include "FMI_search.h"
 
-// #define VTUNE_ANALYSIS 1
+#define VTUNE_ANALYSIS 1
 
 #ifdef VTUNE_ANALYSIS
     #include <ittnotify.h>
@@ -49,6 +49,7 @@ int myrank, num_ranks;
 int main(int argc, char **argv) {
 #ifdef VTUNE_ANALYSIS
     __itt_pause();
+    printf("[INFO: VTUNE] Vtune analysis enabled. This means that the index loading phase is not profiled.\n");
 #endif
     int occ_cp_block_size = CP_BLOCK_SIZE;
     int occ_cp_mask = CP_MASK;

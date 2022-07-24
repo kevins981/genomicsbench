@@ -32,7 +32,7 @@
 EXE=		fmi
 #CXX=		icpx
 CXX=		g++
-#VTUNE_HOME= /opt/intel/oneapi/vtune/2021.1.1
+VTUNE_HOME= /opt/intel/oneapi/vtune/2022.3.0
 ARCH_FLAGS=	-msse4.1
 
 ifeq ($(arch),sse41)
@@ -62,13 +62,15 @@ CXXFLAGS=	-std=c++11 -fopenmp $(ARCH_FLAGS) -g -O3 #-mtune=native -march=native
 CPPFLAGS=	-DENABLE_PREFETCH -DBWA_OTHER_ELE=0
 BWAMEM2_PATH=../../tools/bwa-mem2
 INCLUDES=	-I$(BWAMEM2_PATH)/src -I$(BWAMEM2_PATH)/ext/safestringlib/include
-LIBS=		-L$(BWAMEM2_PATH) -L$(BWAMEM2_PATH)/ext/safestringlib -lsafestring -fopenmp -lz -lbwa -ldl
+LIBS=		-L$(BWAMEM2_PATH) -L$(BWAMEM2_PATH)/ext/safestringlib -lsafestring -fopenmp -lz -lbwa
 
 ifneq ($(VTUNE_HOME),)
 CPPFLAGS+=	-DVTUNE_ANALYSIS=1
 INCLUDES+=	-I${VTUNE_HOME}/include
 LIBS+=-L${VTUNE_HOME}/lib64 -littnotify
 endif
+
+LIBS+=-ldl
 
 .PHONY:all clean depend
 .SUFFIXES:.cpp .o
