@@ -62,7 +62,7 @@ CXXFLAGS=	-std=c++11 -fopenmp $(ARCH_FLAGS) -g -O3 #-mtune=native -march=native
 CPPFLAGS=	-DENABLE_PREFETCH -DBWA_OTHER_ELE=0
 BWAMEM2_PATH=../../tools/bwa-mem2
 INCLUDES=	-I$(BWAMEM2_PATH)/src -I$(BWAMEM2_PATH)/ext/safestringlib/include
-LIBS=		-L$(BWAMEM2_PATH) -L$(BWAMEM2_PATH)/ext/safestringlib -lsafestring -fopenmp -lz -lbwa
+LIBS=		-L$(BWAMEM2_PATH) -L$(BWAMEM2_PATH)/ext/safestringlib -lsafestring -fopenmp -lz -lbwa -lmemkind
 
 ifneq ($(VTUNE_HOME),)
 CPPFLAGS+=	-DVTUNE_ANALYSIS=1
