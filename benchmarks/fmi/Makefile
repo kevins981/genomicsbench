@@ -80,6 +80,9 @@ LIBS+=-ldl
 
 all:$(EXE)
 
+#all_occ_in_pmem: LIBS+= -lmemkind
+all_occ_in_pmem:$(EXE)
+
 fmi:fmi.o $(BWAMEM2_PATH)/libbwa.a
 	$(CXX) -o $@ $^ $(LIBS)
 	#$(CXX) -o fmi_printoutput $^ $(LIBS)

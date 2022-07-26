@@ -1,3 +1,15 @@
+Ecosystem notes:
+To compile fmi, need to run two make files, in this particular order:
+```
+cd ../../tools/bwa-mem2
+make # or, make all_occ_in_pmem
+cd -
+make # or, make all_occ_in_pmem
+```
+Note: the two makefiles should be invoked with the same target (e.g. all_occ_in_pmem).
+(I should do this automatically, e.g. call bwa-mem2 makefile in fmi makefile)
+
+
 `fmi` uses the same license as [BWA-MEM2](https://github.com/bwa-mem2/bwa-mem2).
 
 If you use `fmi`, please cite:
